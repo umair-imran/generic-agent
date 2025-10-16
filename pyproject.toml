@@ -1,0 +1,10 @@
+[project]
+name = "hospitality-bot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "mcp[cli]>=1.15.0",
+    "openai>=1.109.1",
+]
