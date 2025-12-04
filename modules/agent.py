@@ -4,8 +4,10 @@ from livekit.agents import (
     JobContext,
     AgentFalseInterruptionEvent,
     NOT_GIVEN,
-    RoomInputOptions
+    RoomInputOptions,
+    RunContext
 )
+from livekit.agents.llm.tool_context import function_tool, ToolContext
 from livekit.plugins import (
     openai,
     deepgram,
@@ -16,12 +18,51 @@ from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 from config import ApplicationSettings
 from modules import prompts
+from mcp_server.tools import book_room, BOOK_ROOM_TOOL
 from utils.logger import LOGGER
+
+class HospitalityAgent(Agent):
+    def __init__(self, instructions: str) -> None:
+        super().__init__(instructions=instructions)
+
+    # Create function handler for booking
+    @function_tool
+    async def handle_book_room(
+        self,
+        context: RunContext,
+        guest_name: str,
+        check_in_date: str,
+        check_out_date: str,
+        number_of_guests: int,
+        room_type: str = "Standard",
+        contact_phone: str = "",
+        contact_email: str = "",
+        special_requests: str = ""
+    ) -> str:
+        """Handle room booking function call."""
+        LOGGER.info(f"Processing room booking for {guest_name}")
+        result = book_room(
+            guest_name=guest_name,
+            check_in_date=check_in_date,
+            check_out_date=check_out_date,
+            number_of_guests=number_of_guests,
+            room_type=room_type,
+            contact_phone=contact_phone,
+            contact_email=contact_email,
+            special_requests=special_requests
+        )
+        if result["success"]:
+            LOGGER.info(f"Booking successful: {result.get('booking_id')}")
+            return result["message"]
+        else:
+            LOGGER.error(f"Booking failed: {result.get('error')}")
+            return f"I apologize, but there was an issue: {result.get('error', 'Unknown error')}. Please try again."
+        
 
 class HospitalityAssistant:
     def __init__(self, cfg: ApplicationSettings, ctx: JobContext) -> None:
         self.cfg = cfg
-        self.agent = Agent(instructions=prompts.DEFAULT_ASSISTANT_PROMPT)
+        self.agent = HospitalityAgent(instructions=prompts.DEFAULT_ASSISTANT_PROMPT)
         self.ctx = ctx
 
         # Add any other context you want in all log entries here
@@ -29,6 +70,7 @@ class HospitalityAssistant:
             "room": ctx.room.name,
         }
 
+        # Initialize LLM with function calling support
         self.session = AgentSession(
             llm=openai.LLM(api_key=self.cfg.llm.API_KEY,
                            **self.cfg.llm.model_dump()),
@@ -38,7 +80,7 @@ class HospitalityAssistant:
                              **self.cfg.tts.model_dump()),
             turn_detection=MultilingualModel(),
             vad=ctx.proc.userdata["vad"],
-            preemptive_generation=True,
+            preemptive_generation=True
         )
 
         # sometimes background noise could interrupt the agent session, these are considered false positive interruptions
