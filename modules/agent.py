@@ -7,10 +7,8 @@ from livekit.agents import (
     AgentFalseInterruptionEvent,
     NOT_GIVEN,
     RoomInputOptions,
-    RunContext,
     mcp
 )
-from livekit.agents.llm.tool_context import function_tool, ToolContext
 from livekit.plugins import (
     openai,
     deepgram,
@@ -21,8 +19,6 @@ from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 from config import ApplicationSettings
 from modules import prompts
-# from mcp_server.tools import book_room, BOOK_ROOM_TOOL
-from mcp_server import booking_server
 from utils.logger import LOGGER
 
 class HospitalityAgent(Agent):
