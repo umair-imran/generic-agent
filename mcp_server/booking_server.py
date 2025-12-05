@@ -78,7 +78,7 @@ def save_booking_record(guest_name: str,
         
         if result["success"]:
             LOGGER.info(f"Room booking successful: {result['booking_id']}")
-            return f"Your room has been successfully booked! Your booking ID is {result['booking_id']}. We look forward to welcoming you to Al Faisaliah Grand Hotel."            }
+            return f"Your room has been successfully booked! Your booking ID is {result['booking_id']}. We look forward to welcoming you to Al Faisaliah Grand Hotel."
         else:
             LOGGER.error(f"Room booking failed: {result.get('error')}")
             return "I apologize, but there was an issue processing your booking. Please try again or contact our reservations team directly."
