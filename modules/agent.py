@@ -5,7 +5,8 @@ from livekit.agents import (
     AgentFalseInterruptionEvent,
     NOT_GIVEN,
     RoomInputOptions,
-    RunContext
+    RunContext,
+    mcp
 )
 from livekit.agents.llm.tool_context import function_tool, ToolContext
 from livekit.plugins import (
@@ -18,45 +19,48 @@ from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 from config import ApplicationSettings
 from modules import prompts
-from mcp_server.tools import book_room, BOOK_ROOM_TOOL
+# from mcp_server.tools import book_room, BOOK_ROOM_TOOL
+from mcp_server import booking_server
 from utils.logger import LOGGER
 
 class HospitalityAgent(Agent):
     def __init__(self, instructions: str) -> None:
-        super().__init__(instructions=instructions)
+        super().__init__(instructions=instructions,
+         mcp_servers=[mcp.MCPServerHTTP(url="http://localhost:8001/sse")]
+         )
 
-    # Create function handler for booking
-    @function_tool
-    async def handle_book_room(
-        self,
-        context: RunContext,
-        guest_name: str,
-        check_in_date: str,
-        check_out_date: str,
-        number_of_guests: int,
-        room_type: str = "Standard",
-        contact_phone: str = "",
-        contact_email: str = "",
-        special_requests: str = ""
-    ) -> str:
-        """Handle room booking function call."""
-        LOGGER.info(f"Processing room booking for {guest_name}")
-        result = book_room(
-            guest_name=guest_name,
-            check_in_date=check_in_date,
-            check_out_date=check_out_date,
-            number_of_guests=number_of_guests,
-            room_type=room_type,
-            contact_phone=contact_phone,
-            contact_email=contact_email,
-            special_requests=special_requests
-        )
-        if result["success"]:
-            LOGGER.info(f"Booking successful: {result.get('booking_id')}")
-            return result["message"]
-        else:
-            LOGGER.error(f"Booking failed: {result.get('error')}")
-            return f"I apologize, but there was an issue: {result.get('error', 'Unknown error')}. Please try again."
+    # # Create function handler for booking
+    # @function_tool
+    # async def handle_book_room(
+    #     self,
+    #     context: RunContext,
+    #     guest_name: str,
+    #     check_in_date: str,
+    #     check_out_date: str,
+    #     number_of_guests: int,
+    #     room_type: str = "Standard",
+    #     contact_phone: str = "",
+    #     contact_email: str = "",
+    #     special_requests: str = ""
+    # ) -> str:
+    #     """Handle room booking function call."""
+    #     LOGGER.info(f"Processing room booking for {guest_name}")
+    #     result = book_room(
+    #         guest_name=guest_name,
+    #         check_in_date=check_in_date,
+    #         check_out_date=check_out_date,
+    #         number_of_guests=number_of_guests,
+    #         room_type=room_type,
+    #         contact_phone=contact_phone,
+    #         contact_email=contact_email,
+    #         special_requests=special_requests
+    #     )
+    #     if result["success"]:
+    #         LOGGER.info(f"Booking successful: {result.get('booking_id')}")
+    #         return result["message"]
+    #     else:
+    #         LOGGER.error(f"Booking failed: {result.get('error')}")
+    #         return f"I apologize, but there was an issue: {result.get('error', 'Unknown error')}. Please try again."
         
 
 class HospitalityAssistant:
