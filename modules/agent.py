@@ -1,3 +1,5 @@
+import asyncio
+
 from livekit.agents import (
     Agent,
     AgentSession,
@@ -29,39 +31,8 @@ class HospitalityAgent(Agent):
          mcp_servers=[mcp.MCPServerHTTP(url="http://localhost:8001/sse")]
          )
 
-    # # Create function handler for booking
-    # @function_tool
-    # async def handle_book_room(
-    #     self,
-    #     context: RunContext,
-    #     guest_name: str,
-    #     check_in_date: str,
-    #     check_out_date: str,
-    #     number_of_guests: int,
-    #     room_type: str = "Standard",
-    #     contact_phone: str = "",
-    #     contact_email: str = "",
-    #     special_requests: str = ""
-    # ) -> str:
-    #     """Handle room booking function call."""
-    #     LOGGER.info(f"Processing room booking for {guest_name}")
-    #     result = book_room(
-    #         guest_name=guest_name,
-    #         check_in_date=check_in_date,
-    #         check_out_date=check_out_date,
-    #         number_of_guests=number_of_guests,
-    #         room_type=room_type,
-    #         contact_phone=contact_phone,
-    #         contact_email=contact_email,
-    #         special_requests=special_requests
-    #     )
-    #     if result["success"]:
-    #         LOGGER.info(f"Booking successful: {result.get('booking_id')}")
-    #         return result["message"]
-    #     else:
-    #         LOGGER.error(f"Booking failed: {result.get('error')}")
-    #         return f"I apologize, but there was an issue: {result.get('error', 'Unknown error')}. Please try again."
-        
+    async def on_enter(self):
+        self.session.generate_reply()
 
 class HospitalityAssistant:
     def __init__(self, cfg: ApplicationSettings, ctx: JobContext) -> None:
@@ -87,6 +58,14 @@ class HospitalityAssistant:
             preemptive_generation=True
         )
 
+        # Add error handler for TTS errors
+        @self.session.on("error")
+        def _on_error(ev):
+            if "no audio frames were pushed" in str(ev.error):
+                LOGGER.warning(f"TTS error detected (likely first message): {ev.error}")
+                # The session will retry automatically, so we just log it
+            else:
+                LOGGER.error(f"Session error: {ev.error}")
         # sometimes background noise could interrupt the agent session, these are considered false positive interruptions
         # when it's detected, you may resume the agent's speech
         @self.session.on("agent_false_interruption")
@@ -110,6 +89,22 @@ class HospitalityAssistant:
                 ),
             )
             LOGGER.info("Agent session started successfully")
+
+            # # Pre-warm TTS by generating a short test phrase
+            # # This ensures TTS is ready before the first real message
+            # try:
+            #     LOGGER.info("Pre-warming TTS service...")
+            #     # Generate a very short test phrase to warm up TTS
+            #     await self.session.tts.synthesize("Hi")
+            #     LOGGER.info("TTS service warmed up successfully")
+            # except Exception as e:
+            #     LOGGER.warning(f"TTS pre-warm failed (non-critical): {e}")
+            #     # Don't fail the entire session if pre-warm fails
+            
+            # Small delay to allow TTS service to fully initialize
+            # This prevents the first message TTS error
+            await asyncio.sleep(1.0)  # 1 second delay to warm up TTS
+            LOGGER.info("TTS warmup delay completed")
 
             # Join the room and connect to the user
             await self.ctx.connect()
