@@ -62,7 +62,7 @@ def book_room(guest_name: str, check_in_date: str, check_out_date: str,
             
     except Exception as e:
         error_msg = f"Exception during room booking: {str(e)}"
-        LOGGER.error(error_msg, exc_info=True)
+        LOGGER.error(error_msg)
         return {
             "success": False,
             "error": error_msg,

@@ -56,7 +56,7 @@ class PromptLoader:
                 raise ValueError(f"Invalid prompt file format in {prompt_file}")
                 
         except Exception as e:
-            LOGGER.error(f"Failed to load prompt from {prompt_file}: {e}", exc_info=True)
+            LOGGER.error(f"Failed to load prompt from {prompt_file}: {e}")
             raise
     
     @staticmethod

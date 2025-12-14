@@ -46,7 +46,7 @@ async def entrypoint(ctx: JobContext):
         LOGGER.info(f"{use_case_name} started successfully for room: {ctx.room.name}")
         
     except Exception as e:
-        LOGGER.error(f"Failed to start assistant: {e}", exc_info=True)
+        LOGGER.error(f"Failed to start assistant: {e}")
         raise
 
 

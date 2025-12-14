@@ -74,7 +74,7 @@ def main():
         elif args.mode == "api":
             run_fastapi(host=args.host, port=args.port)
     except Exception as e:
-        LOGGER.error(f"Failed to start application: {e}", exc_info=True)
+        LOGGER.error(f"Failed to start application: {e}")
         sys.exit(1)
 
 

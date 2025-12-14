@@ -85,7 +85,7 @@ def save_booking_record(guest_name: str,
             
     except Exception as e:
         error_msg = f"Exception during room booking: {str(e)}"
-        LOGGER.error(error_msg, exc_info=True)
+        LOGGER.error(error_msg)
         return "I apologize, but there was an error processing your booking. Please try again."
 
 

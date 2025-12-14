@@ -141,7 +141,7 @@ class GenericAssistant:
             await self.ctx.connect()
             LOGGER.info("Connected to room successfully")
         except Exception as e:
-            LOGGER.error(f"Failed to start {self.use_case_config.name}: {e}", exc_info=True)
+            LOGGER.error(f"Failed to start {self.use_case_config.name}: {e}")
             raise
 
 

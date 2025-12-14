@@ -201,7 +201,7 @@ async def generate_token(request: TokenRequest):
     except HTTPException:
         raise
     except Exception as e:
-        LOGGER.error(f"Failed to generate token: {e}", exc_info=True)
+        LOGGER.error(f"Failed to generate token: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to generate token: {str(e)}"
@@ -249,7 +249,7 @@ async def create_room(request: CreateRoomRequest):
     except HTTPException:
         raise
     except Exception as e:
-        LOGGER.error(f"Failed to create room: {e}", exc_info=True)
+        LOGGER.error(f"Failed to create room: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to create room: {str(e)}"
@@ -293,7 +293,7 @@ async def list_rooms():
     except HTTPException:
         raise
     except Exception as e:
-        LOGGER.error(f"Failed to list rooms: {e}", exc_info=True)
+        LOGGER.error(f"Failed to list rooms: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to list rooms: {str(e)}"
