@@ -1,4 +1,4 @@
-from typing import Optional, Literal
+from typing import Optional, Literal, Dict, Any
 from pathlib import Path
 
 from pydantic_settings import BaseSettings
@@ -135,16 +135,68 @@ class LiveKitSettings(BaseSettings):
         return cls()
 
 
+class MCPServerConfig(BaseModel):
+    """Configuration for an MCP server."""
+    url: str
+    name: Optional[str] = None
+
+
+class UseCaseConfig(BaseModel):
+    """Configuration for a specific use case."""
+    name: str
+    greeting: str
+    mcp_servers: list[MCPServerConfig] = Field(default_factory=list)
+    prompt_file: str
+
+
+class UseCaseSettings(BaseModel):
+    """Settings for use case selection and configuration."""
+    use_case: Literal["hospitality", "medical", "education", "hr"]
+    use_cases: Dict[str, UseCaseConfig]
+    
+    def get_current_config(self) -> UseCaseConfig:
+        """Get the configuration for the current use case."""
+        if self.use_case not in self.use_cases:
+            raise ValueError(
+                f"Use case '{self.use_case}' not found in configuration. "
+                f"Available use cases: {list(self.use_cases.keys())}"
+            )
+        return self.use_cases[self.use_case]
+
+
 class ApplicationSettings(BaseModel):
+    use_case_settings: UseCaseSettings
     llm: LLMSettings
     stt: STTDeepGramSettings
     tts: TTSCartesiaSettings
     livekit: Optional[LiveKitSettings] = None
     
+    @property
+    def current_use_case(self) -> UseCaseConfig:
+        """Get the current use case configuration."""
+        return self.use_case_settings.get_current_config()
+    
     @classmethod
     def from_cfg(cls, cfg: str | dict) -> "ApplicationSettings":
         if isinstance(cfg, str):
             cfg = load_yaml(cfg)
+        
+        # Handle backward compatibility: if use_case_settings is not present,
+        # create a default hospitality configuration
+        if "use_case_settings" not in cfg:
+            LOGGER.warning("No use_case_settings found, using default hospitality configuration")
+            cfg["use_case_settings"] = {
+                "use_case": "hospitality",
+                "use_cases": {
+                    "hospitality": {
+                        "name": "Hospitality Assistant",
+                        "greeting": "Assalamu alaikum! Welcome to Al Faisaliah Grand Hotel. My name is Sarah, and I'm delighted to assist you today.",
+                        "mcp_servers": [{"url": "http://localhost:8001/sse", "name": "booking_server"}],
+                        "prompt_file": "config/prompts/hospitality.yaml"
+                    }
+                }
+            }
+        
         settings = cls(**cfg)
         # Load LiveKit settings from environment
         try:

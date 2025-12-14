@@ -1,3 +1,43 @@
+# Use case selection - change this to switch between different use cases
+# Options: hospitality, medical, education, hr
+use_case_settings:
+  use_case: hospitality  # Change this to switch use cases
+  
+  # Configuration for each use case
+  use_cases:
+    hospitality:
+      name: "Hospitality Assistant"
+      greeting: "Assalamu alaikum! Welcome to Al Faisaliah Grand Hotel. My name is Sarah, and I'm delighted to assist you today."
+      mcp_servers:
+        - url: "http://localhost:8001/sse"
+          name: "booking_server"
+      prompt_file: "config/prompts/hospitality.yaml"
+    
+    medical:
+      name: "Medical Assistant"
+      greeting: "Hello! Welcome to our medical services. I'm Dr. Sarah, and I'm here to help you today."
+      mcp_servers:
+        - url: "http://localhost:8002/sse"
+          name: "appointment_server"
+      prompt_file: "config/prompts/medical.yaml"
+    
+    education:
+      name: "Education Assistant"
+      greeting: "Hello! Welcome to our educational services. I'm here to help you with your academic needs."
+      mcp_servers:
+        - url: "http://localhost:8003/sse"
+          name: "enrollment_server"
+      prompt_file: "config/prompts/education.yaml"
+    
+    hr:
+      name: "HR Assistant"
+      greeting: "Hello! Welcome to Human Resources. I'm here to assist you with your HR inquiries."
+      mcp_servers:
+        - url: "http://localhost:8004/sse"
+          name: "hr_server"
+      prompt_file: "config/prompts/hr.yaml"
+
+# LLM Configuration
 llm:
   type: openai
   model: gpt-4o-mini
@@ -5,11 +45,13 @@ llm:
   max_tokens: 150
   # verbose: true
 
+# Speech-to-Text Configuration
 stt:
   type: deepgram
   model: nova-3
   language: en
 
+# Text-to-Speech Configuration
 tts:
   type: cartesia
   model: sonic-2

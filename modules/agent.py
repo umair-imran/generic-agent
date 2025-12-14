@@ -1,4 +1,6 @@
+"""Generic agent implementation that works with any use case."""
 import asyncio
+from typing import List, Optional
 
 from livekit.agents import (
     Agent,
@@ -18,30 +20,72 @@ from livekit.plugins import (
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 from config import ApplicationSettings
-from modules import prompts
+from modules.prompt_loader import PromptLoader
 from utils.logger import LOGGER
 
-class HospitalityAgent(Agent):
-    def __init__(self, instructions: str) -> None:
-        super().__init__(instructions=instructions,
-         mcp_servers=[mcp.MCPServerHTTP(url="http://localhost:8001/sse")]
-         )
 
-    async def on_enter(self):
-        self.session.generate_reply()
+class GenericAgent(Agent):
+    """Generic agent that can be configured for any use case."""
+    
+    def __init__(self, instructions: str, mcp_server_urls: Optional[List[str]] = None) -> None:
+        """
+        Initialize a generic agent.
+        
+        Args:
+            instructions: The system instructions/prompt for the agent
+            mcp_server_urls: Optional list of MCP server URLs to connect to
+        """
+        mcp_servers = []
+        if mcp_server_urls:
+            for url in mcp_server_urls:
+                mcp_servers.append(mcp.MCPServerHTTP(url=url))
+        
+        super().__init__(
+            instructions=instructions,
+            mcp_servers=mcp_servers if mcp_servers else None
+        )
 
-class HospitalityAssistant:
+
+class GenericAssistant:
+    """Generic assistant that works with any use case configuration."""
+    
     def __init__(self, cfg: ApplicationSettings, ctx: JobContext) -> None:
+        """
+        Initialize a generic assistant for any use case.
+        
+        Args:
+            cfg: Application settings including use case configuration
+            ctx: Job context from LiveKit
+        """
         self.cfg = cfg
-        self.agent = HospitalityAgent(instructions=prompts.DEFAULT_ASSISTANT_PROMPT)
         self.ctx = ctx
-
-        # Add any other context you want in all log entries here
+        self.use_case_config = cfg.current_use_case
+        
+        # Load prompt dynamically based on use case
+        try:
+            prompt = PromptLoader.load_prompt(self.use_case_config.prompt_file)
+            LOGGER.info(f"Loaded prompt from {self.use_case_config.prompt_file}")
+        except Exception as e:
+            LOGGER.error(f"Failed to load prompt, using fallback: {e}")
+            # Fallback to a basic prompt if file loading fails
+            prompt = f"You are a helpful assistant for {self.use_case_config.name}. {self.use_case_config.greeting}"
+        
+        # Get MCP server URLs from configuration
+        mcp_urls = [server.url for server in self.use_case_config.mcp_servers]
+        if mcp_urls:
+            LOGGER.info(f"Connecting to {len(mcp_urls)} MCP server(s): {mcp_urls}")
+        
+        # Create generic agent with loaded prompt and MCP servers
+        self.agent = GenericAgent(instructions=prompt, mcp_server_urls=mcp_urls)
+        
+        # Add context to logs
         self.ctx.log_context_fields = {
             "room": ctx.room.name,
+            "use_case": cfg.use_case_settings.use_case,
+            "use_case_name": self.use_case_config.name,
         }
 
-        # Initialize LLM with function calling support
+        # Initialize session with LLM, STT, TTS
         self.session = AgentSession(
             llm=openai.LLM(api_key=self.cfg.llm.API_KEY,
                            **self.cfg.llm.model_dump()),
@@ -62,8 +106,8 @@ class HospitalityAssistant:
                 # The session will retry automatically, so we just log it
             else:
                 LOGGER.error(f"Session error: {ev.error}")
-        # sometimes background noise could interrupt the agent session, these are considered false positive interruptions
-        # when it's detected, you may resume the agent's speech
+        
+        # Handle false positive interruptions
         @self.session.on("agent_false_interruption")
         def _on_agent_false_interruption(ev: AgentFalseInterruptionEvent):
             LOGGER.warning("False positive interruption, Resuming...")
@@ -72,7 +116,9 @@ class HospitalityAssistant:
     async def start(self):
         """Start the agent session and connect to the room."""
         try:
-            LOGGER.info(f"Starting agent session for room: {self.ctx.room.name}")
+            use_case_name = self.use_case_config.name
+            LOGGER.info(f"Starting {use_case_name} for room: {self.ctx.room.name}")
+            
             # Start the session, which initializes the voice pipeline and warms up the models
             await self.session.start(
                 agent=self.agent,
@@ -84,19 +130,8 @@ class HospitalityAssistant:
                     noise_cancellation=noise_cancellation.BVC(),
                 ),
             )
-            LOGGER.info("Agent session started successfully")
+            LOGGER.info(f"{use_case_name} session started successfully")
 
-            # # Pre-warm TTS by generating a short test phrase
-            # # This ensures TTS is ready before the first real message
-            # try:
-            #     LOGGER.info("Pre-warming TTS service...")
-            #     # Generate a very short test phrase to warm up TTS
-            #     await self.session.tts.synthesize("Hi")
-            #     LOGGER.info("TTS service warmed up successfully")
-            # except Exception as e:
-            #     LOGGER.warning(f"TTS pre-warm failed (non-critical): {e}")
-            #     # Don't fail the entire session if pre-warm fails
-            
             # Small delay to allow TTS service to fully initialize
             # This prevents the first message TTS error
             await asyncio.sleep(1.0)  # 1 second delay to warm up TTS
@@ -106,5 +141,10 @@ class HospitalityAssistant:
             await self.ctx.connect()
             LOGGER.info("Connected to room successfully")
         except Exception as e:
-            LOGGER.error(f"Failed to start agent session: {e}", exc_info=True)
+            LOGGER.error(f"Failed to start {self.use_case_config.name}: {e}", exc_info=True)
             raise
+
+
+# Backward compatibility: Keep old class names as aliases
+HospitalityAgent = GenericAgent
+HospitalityAssistant = GenericAssistant

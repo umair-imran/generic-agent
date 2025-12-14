@@ -1,4 +1,4 @@
-"""LiveKit agent entrypoint for the hospitality assistant."""
+"""LiveKit agent entrypoint - works with any use case."""
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -18,33 +18,35 @@ from livekit.agents import cli, WorkerOptions
 from livekit.plugins import silero
 
 from config import ApplicationSettings
-from modules.agent import HospitalityAssistant
+from modules.agent import GenericAssistant, HospitalityAssistant  # Backward compatibility
 from utils.logger import LOGGER
 
 async def entrypoint(ctx: JobContext):
     """
-    Entrypoint function for LiveKit agent.
+    Entrypoint function for LiveKit agent - works with any use case.
     This function is called when a new job starts.
     """
     try:
-        LOGGER.info(f"Starting hospitality assistant for room: {ctx.room.name}")
-        
         # Load configuration
         settings = ApplicationSettings.from_cfg('config/config.yml')
+        use_case = settings.use_case_settings.use_case
+        use_case_name = settings.current_use_case.name
+        
+        LOGGER.info(f"Starting {use_case_name} for room: {ctx.room.name} (use case: {use_case})")
         
         # Initialize VAD (Voice Activity Detection) and store in userdata
         # This is required by the agent session
         vad = silero.VAD.load()
         ctx.proc.userdata["vad"] = vad
         
-        # Create and start the hospitality assistant
-        assistant = HospitalityAssistant(cfg=settings, ctx=ctx)
+        # Create and start the assistant (works for any use case)
+        assistant = GenericAssistant(cfg=settings, ctx=ctx)
         await assistant.start()
         
-        LOGGER.info(f"Hospitality assistant started successfully for room: {ctx.room.name}")
+        LOGGER.info(f"{use_case_name} started successfully for room: {ctx.room.name}")
         
     except Exception as e:
-        LOGGER.error(f"Failed to start hospitality assistant: {e}")
+        LOGGER.error(f"Failed to start assistant: {e}", exc_info=True)
         raise
 
 
