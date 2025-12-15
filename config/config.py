@@ -190,7 +190,7 @@ class ApplicationSettings(BaseModel):
                 "use_cases": {
                     "hospitality": {
                         "name": "Hospitality Assistant",
-                        "greeting": "Assalamu alaikum! Welcome to Al Faisaliah Grand Hotel. My name is Sarah, and I'm delighted to assist you today.",
+                        "greeting": "Assalamu alaikum! Welcome to Al Faisaliah Grand Hotel. My name is David, and I'm delighted to assist you today.",
                         "mcp_servers": [{"url": "http://localhost:8001/sse", "name": "booking_server"}],
                         "prompt_file": "config/prompts/hospitality.yaml"
                     }
