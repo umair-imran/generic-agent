@@ -89,10 +89,17 @@ class GenericAssistant:
         self.session = AgentSession(
             llm=openai.LLM(api_key=self.cfg.llm.API_KEY,
                            **self.cfg.llm.model_dump()),
-            stt=deepgram.STT(api_key=self.cfg.stt.API_KEY,
-                             **self.cfg.stt.model_dump()),
-            tts=cartesia.TTS(api_key=self.cfg.tts.API_KEY,
-                             **self.cfg.tts.model_dump()),
+            stt=openai.STT(api_key=self.cfg.llm.API_KEY,
+                            #  **self.cfg.stt.model_dump()
+                             ),
+            tts=openai.TTS(api_key=self.cfg.llm.API_KEY,
+                            #  **self.cfg.stt.model_dump()\
+                                ),
+
+            # stt=deepgram.STT(api_key=self.cfg.stt.API_KEY,
+            #                  **self.cfg.stt.model_dump()),
+            # tts=cartesia.TTS(api_key=self.cfg.tts.API_KEY,
+            #                  **self.cfg.tts.model_dump()),
             turn_detection=MultilingualModel(),
             vad=ctx.proc.userdata["vad"],
             preemptive_generation=True
@@ -123,12 +130,12 @@ class GenericAssistant:
             await self.session.start(
                 agent=self.agent,
                 room=self.ctx.room,
-                room_input_options=RoomInputOptions(
-                    # LiveKit Cloud enhanced noise cancellation
-                    # - If self-hosting, omit this parameter
-                    # - For telephony applications, use `BVCTelephony` for best results
-                    noise_cancellation=noise_cancellation.BVC(),
-                ),
+                # room_input_options=RoomInputOptions(
+                #     # LiveKit Cloud enhanced noise cancellation
+                #     # - If self-hosting, omit this parameter
+                #     # - For telephony applications, use `BVCTelephony` for best results
+                #     # noise_cancellation=noise_cancellation.BVC(),
+                # ),
             )
             LOGGER.info(f"{use_case_name} session started successfully")
 
