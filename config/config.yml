@@ -1,7 +1,7 @@
 # Use case selection - change this to switch between different use cases
 # Options: hospitality, medical, education, hr
 use_case_settings:
-  use_case: hospitality # Change this to switch use cases
+  use_case: medical # Change this to switch use cases
 
   # Configuration for each use case
   use_cases:
